@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 
 const DEFAULTS = {
-  shortBreakTime: 1 / 30,
-  longBreakTime: 1,
-  repeatTime: 1 / 6,
+  shortBreakTime: 5,
+  longBreakTime: 15,
+  repeatTime: 25,
   numberOfRepeats: 4,
 };
 
@@ -17,6 +17,12 @@ enum Status {
   WORKING = 'Working',
 }
 
+const timeoutMap = {
+  [Status.SHORT_BREAK]: DEFAULTS.shortBreakTime,
+  [Status.LONG_BREAK]: DEFAULTS.longBreakTime,
+  [Status.WORKING]: DEFAULTS.repeatTime,
+};
+
 function usePomodoroTimer() {
   const [totalRepeats, setTotalRepeats] = useState(0);
   const [status, setStatus] = useState<Status>(Status.WORKING);
@@ -27,41 +33,23 @@ function usePomodoroTimer() {
     return () => clearInterval(intervalID);
   }, [status]);
 
-  // long break timeout
   useEffect(() => {
-    if (status !== Status.LONG_BREAK) return;
+    const timeout = minutesToMiliseconds(timeoutMap[status]);
     const timeoutId = setTimeout(() => {
-      setTimeLeft(DEFAULTS.repeatTime * 60);
-      setStatus(Status.WORKING);
-    }, minutesToMiliseconds(DEFAULTS.longBreakTime));
-
-    return () => clearTimeout(timeoutId);
-  }, [status]);
-
-  // short break timeout
-  useEffect(() => {
-    if (status !== Status.SHORT_BREAK) return;
-    const timeoutId = setTimeout(() => {
-      setTimeLeft(DEFAULTS.repeatTime * 60);
-      setStatus(Status.WORKING);
-    }, minutesToMiliseconds(DEFAULTS.shortBreakTime));
-
-    return () => clearTimeout(timeoutId);
-  }, [status]);
-
-  // working timeout
-  useEffect(() => {
-    if (status !== Status.WORKING) return;
-    const timeoutId = setTimeout(() => {
-      if ((totalRepeats + 1) % 4 === 0) {
-        setTimeLeft(DEFAULTS.longBreakTime * 60);
-        setStatus(Status.LONG_BREAK);
+      if (status === Status.LONG_BREAK || status === Status.SHORT_BREAK) {
+        setTimeLeft(DEFAULTS.repeatTime * 60);
+        setStatus(Status.WORKING);
       } else {
-        setTimeLeft(DEFAULTS.shortBreakTime * 60);
-        setStatus(Status.SHORT_BREAK);
+        if ((totalRepeats + 1) % 4 === 0) {
+          setTimeLeft(DEFAULTS.longBreakTime * 60);
+          setStatus(Status.LONG_BREAK);
+        } else {
+          setTimeLeft(DEFAULTS.shortBreakTime * 60);
+          setStatus(Status.SHORT_BREAK);
+        }
+        setTotalRepeats((r) => r + 1);
       }
-      setTotalRepeats((r) => r + 1);
-    }, minutesToMiliseconds(DEFAULTS.repeatTime));
+    }, timeout);
 
     return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
