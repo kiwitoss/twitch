@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+import DeskBellAudio from './assets/desk-bell.mp3';
+
 const DEFAULTS = {
   shortBreakTime: 5,
   longBreakTime: 15,
@@ -23,6 +25,8 @@ const timeoutMap = {
   [Status.WORKING]: DEFAULTS.repeatTime,
 };
 
+const bellSound = new Audio(DeskBellAudio);
+
 function usePomodoroTimer() {
   const [totalRepeats, setTotalRepeats] = useState(0);
   const [status, setStatus] = useState<Status>(Status.WORKING);
@@ -36,6 +40,8 @@ function usePomodoroTimer() {
   useEffect(() => {
     const timeout = minutesToMiliseconds(timeoutMap[status]);
     const timeoutId = setTimeout(() => {
+      bellSound.play();
+
       if (status === Status.LONG_BREAK || status === Status.SHORT_BREAK) {
         setTimeLeft(DEFAULTS.repeatTime * 60);
         setStatus(Status.WORKING);
